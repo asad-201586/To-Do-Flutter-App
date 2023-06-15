@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:to_do_flutter/db/database.dart';
 import 'dialog/dialog_box_add_task.dart';
 import 'items/item_to_do.dart';
 
@@ -10,26 +12,42 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List toDoList = [
-    ["Flutter Tutorial", true],
-    ["Daily 5 Hadis", true],
-    ["Daily 5 times Salah", true],
-  ];
+  // List toDoList = [
+  //   ["Flutter Tutorial", true],
+  //   ["Daily 5 Hadis", true],
+  //   ["Daily 5 times Salah", true],
+  // ];
+
+  final _box = Hive.box("ToDoBox");
+  ToDoDatabase db = ToDoDatabase();
+
+  @override
+  void initState() {
+    super.initState();
+    if(_box.get(db.KEY_TODOLIST) == null) {
+      db.createInitialData();
+    } else {
+      db.loadData();
+    }
+  }
+
 
   void checkboxChanged(bool? value, int index) {
     setState(() {
-      toDoList[index][1] = !toDoList[index][1];
+      db.toDoList[index][1] = !db.toDoList[index][1];
     });
+    db.updateDatabase();
   }
 
   final _textController = TextEditingController();
 
   void onSave() {
     setState(() {
-      toDoList.add([_textController.text, false]);
+      db.toDoList.add([_textController.text, false]);
       _textController.clear();
     });
     Navigator.of(context).pop();
+    db.updateDatabase();
   }
 
   void onCancel() {
@@ -38,8 +56,9 @@ class _HomePageState extends State<HomePage> {
 
   void deleteTask(int index) {
     setState(() {
-      toDoList.removeAt(index);
+      db.toDoList.removeAt(index);
     });
+    db.updateDatabase();
   }
 
   @override
@@ -47,20 +66,20 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.yellow[200],
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "To Do App",
-          style: TextStyle(color: Colors.yellow[800]),
+          style: TextStyle(color: Colors.black),
         ),
         centerTitle: true,
         elevation: 0,
       ),
       body: ListView.builder(
-        itemCount: toDoList.length,
+        itemCount: db.toDoList.length,
         itemBuilder: (BuildContext context, int index) {
           return ToDoListItem(
-            taskName: toDoList[index][0],
-            taskCompleted: toDoList[index][1],
-            onChanged: (value) => checkboxChanged(toDoList[index][1], index),
+            taskName: db.toDoList[index][0],
+            taskCompleted: db.toDoList[index][1],
+            onChanged: (value) => checkboxChanged(db.toDoList[index][1], index),
             deleteFunction: (context) => deleteTask(index),
           );
         },
